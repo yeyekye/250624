@@ -1,56 +1,28 @@
 import streamlit as st
-import pandas as pd
-from datetime import datetime
-import pytz
 
-# 파일 업로드
-uploaded_file = st.file_uploader("📂 엑셀 파일 업로드", type=["xlsx"])
-if uploaded_file:
-    df = pd.read_excel(uploaded_file, sheet_name="특강 계획 전체(학과별)", skiprows=1)
-    df = df.rename(columns={
-        df.columns[2]: "구분",
-        df.columns[3]: "주제",
-        df.columns[4]: "일시",
-        df.columns[5]: "강사",
-        df.columns[6]: "대상",
-        df.columns[7]: "장소"
-    })
+st.set_page_config(page_title="관광서비스과 진학 길라잡이", layout="wide")
 
-    # 날짜 파싱
-    df["날짜"] = pd.to_datetime(df["일시"].str.extract(r'(\d{4}\. *\d{1,2}\. *\d{1,2})')[0].str.replace(' ', ''), format="%Y.%m.%d", errors='coerce')
+# 제목
+st.title("✨ 관광서비스과 진학 길라잡이")
 
-    today = datetime.now(pytz.timezone("Asia/Seoul")).date()
+# 본문 내용
+st.markdown("""
+안녕하세요!  
+이 웹사이트는 **관광서비스과 학생들이 진학할 수 있는 대학과 학과 정보를 한눈에 확인할 수 있는 웹앱**입니다.
 
-    st.title("📘 2025학년도 1학기 전문가 및 선배 특강")
-    targets = sorted(df["대상"].dropna().unique())
-    tabs = st.tabs(targets)
+고등학교에서 관광서비스를 전공하며 바리스타, 호텔서비스, 관광통역, 항공서비스 등 다양한 진로를 꿈꾸는 여러분을 위해 이 웹앱을 만들었습니다.  
+**수도권부터 지방까지, 관광 관련 학과를 운영하는 대학 정보를 정리**했으며, **학과의 특징과 관련 자격증, 실습 중심 여부 등도 함께 안내**하고 있습니다.
 
-    def highlight_past(row):
-        return ['background-color: #f0f0f0' if pd.notnull(row["날짜"]) and row["날짜"].date() < today else '' for _ in row]
+---
 
-    for i, target in enumerate(targets):
-        with tabs[i]:
-            st.subheader(f"🎯 대상: {target}")
-            sub_df = df[df["대상"] == target].copy()
-            sub_df = sub_df.sort_values("날짜")
+### 🎒 여러분이 이 웹앱에서 할 수 있는 일
 
-            expert = sub_df[sub_df["구분"] == "전문가특강"]
-            alumni = sub_df[sub_df["구분"] == "선배특강"]
+- ✅ 내가 가고 싶은 **지역별 대학과 학과를 검색**할 수 있어요  
+- ✅ 관광, 호텔, 바리스타, 항공서비스 등 **관심 분야에 맞는 학과를 탐색**할 수 있어요  
+- ✅ 각 학과의 **교육 특징과 진로 방향**을 확인하고, 나의 선택에 대한 근거를 마련할 수 있어요  
 
-            if not expert.empty:
-                st.markdown("### 👨‍🏫 전문가 특강")
-                st.dataframe(expert.style.apply(highlight_past, axis=1), use_container_width=True)
-            else:
-                st.info("전문가 특강 없음")
+---
 
-            if not alumni.empty:
-                st.markdown("### 👩‍🎓 선배 특강")
-                st.dataframe(alumni.style.apply(highlight_past, axis=1), use_container_width=True)
-            else:
-                st.info("선배 특강 없음")
-
-    st.markdown("---")
-    st.markdown("## 📄 원본 데이터")
-    st.dataframe(df, use_container_width=True)
-else:
-    st.warning("왼쪽에서 엑셀 파일을 업로드해주세요.")
+진로를 준비하는 지금, 이 웹앱이 **미래를 설계하는 작은 나침반**이 되기를 바랍니다.  
+진심을 담아 진학을 준비하는 모든 관광서비스과 학생들을 응원합니다!  
+""")
