@@ -1,62 +1,40 @@
 import streamlit as st
+import pandas as pd
 
-# 페이지 제목
-st.set_page_config(page_title="MBTI 직업 추천기", page_icon="🧠")
+# CSV 파일 읽기 (EUC-KR 인코딩)
+file_path = '202505_202505_연령별인구현황_월간.csv'
+df = pd.read_csv(file_path, encoding='euc-kr')
 
-st.title("🎯 MBTI 기반 직업 추천기")
-st.caption("당신의 성격 유형에 어울리는 직업을 찾아보세요!")
+st.title("2025년 5월 기준 연령별 인구 현황 분석")
+st.write("출처: 통계청 / 단위: 명")
 
-# MBTI 정보 사전
-mbti_data = {
-    "INTJ": {
-        "description": "전략가 🧠 – 창의적이며 논리적인 해결사. 큰 그림을 보며 미래를 설계합니다.",
-        "jobs": {
-            "전략 컨설턴트": "기업의 문제를 해결하고 방향을 제시하는 전략 전문가 💼",
-            "데이터 과학자": "데이터에서 인사이트를 도출하는 분석가 📊",
-            "시스템 분석가": "IT 시스템을 효율적으로 설계하고 분석하는 전문가 💻"
-        }
-    },
-    "ENFP": {
-        "description": "활동가 🌈 – 열정적이고 창의적인 낙천주의자. 사람들과의 소통을 즐깁니다.",
-        "jobs": {
-            "브랜드 매니저": "브랜드 이미지를 만들고 관리하는 마케팅 전문가 🛍️",
-            "광고 기획자": "창의적인 광고를 기획하고 캠페인을 이끄는 사람 📺",
-            "창작자 (크리에이터)": "자신만의 콘텐츠를 만들고 세상과 소통하는 사람 🎨"
-        }
-    },
-    "ISTJ": {
-        "description": "현실주의자 📘 – 책임감 있고 신뢰할 수 있는 조직의 핵심.",
-        "jobs": {
-            "회계사": "숫자를 다루며 정확성을 추구하는 재무 전문가 📑",
-            "공무원": "국가를 위해 일하며 안정적인 삶을 지향하는 직업 🏛️",
-            "법률 보조원": "법률 전문가를 보조하며 실무를 처리하는 사람 ⚖️"
-        }
-    },
-    "INFP": {
-        "description": "중재자 💖 – 이상주의자이며 감성이 풍부한 사람.",
-        "jobs": {
-            "작가": "세상과 감정을 글로 표현하는 창조적 예술가 ✍️",
-            "교육자": "학생들을 성장시키고 영감을 주는 선생님 🍎",
-            "예술가": "자신의 감정을 다양한 방식으로 표현하는 창작자 🎨"
-        }
-    },
-    # 원하면 여기 나머지 유형도 추가할 수 있음
-}
+# 필요한 열만 추출: '행정구역', '총인구수', '연령별 인구'
+# 열 이름 중 '2025년05월_계_'로 시작하는 열만 추출 (연령 열)
+age_columns = [col for col in df.columns if col.startswith("2025년05월_계_")]
+df_age = df[['행정구역별(1)'] + ['2025년05월_계_총인구수'] + age_columns].copy()
 
-# 사용자가 선택할 수 있는 MBTI 목록
-mbti_types = list(mbti_data.keys())
-selected_mbti = st.selectbox("🧬 당신의 MBTI 유형을 선택하세요:", mbti_types)
+# 컬럼명 정리
+df_age = df_age.rename(columns={'행정구역별(1)': '행정구역', '2025년05월_계_총인구수': '총인구수'})
 
-# 결과 출력
-if selected_mbti:
-    st.markdown("---")
-    info = mbti_data[selected_mbti]
-    st.subheader(f"🧾 {selected_mbti} 유형 설명")
-    st.info(info["description"])
+# 연령 숫자만 남기기
+rename_dict = {col: col.replace("2025년05월_계_", "") for col in age_columns}
+df_age = df_age.rename(columns=rename_dict)
 
-    st.subheader("🔍 추천 직업 리스트")
-    for job, desc in info["jobs"].items():
-        st.write(f"**✅ {job}**  \n{desc}")
+# 상위 5개 행정구역 선택 (총인구수 기준)
+df_top5 = df_age.sort_values(by='총인구수', ascending=False).head(5)
+
+# 연령 컬럼만 추출 (가로: 연령, 세로: 인구수)
+age_only_cols = list(rename_dict.values())
+
+# 선 그래프용 데이터 준비
+st.subheader("상위 5개 행정구역의 연령별 인구 분포")
+for i in range(len(df_top5)):
+    region = df_top5.iloc[i]['행정구역']
+    region_data = df_top5.iloc[i][age_only_cols].astype(int)
     
-    st.success("당신에게 딱 맞는 직업을 발견했나요? 🌟")
-    st.balloons()  # 풍선 효과 🎈
+    st.write(f"📍 {region}")
+    st.line_chart(region_data.T, use_container_width=True)
+
+# 원본 데이터 보여주기
+st.subheader("📄 원본 데이터 (요약)")
+st.dataframe(df_top5.reset_index(drop=True))
